@@ -6,6 +6,17 @@
     "target": "es5",
     "allowJs": true,
     "sourceMap": true,
-    "moduleResolution": "node"
-  }
+    "moduleResolution": "node",
+    "typeRoots": [
+        "node_modules/@types"
+    ],
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+  },
+  "include": [
+    "**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }

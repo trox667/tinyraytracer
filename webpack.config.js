@@ -1,11 +1,13 @@
 const path = require('path');
 
-const {
-  NODE_ENV = 'production'
-} = process.env;
+// const {
+//   NODE_ENV = 'production'
+// } = process.env;
 
 module.exports = {
-  mode: NODE_ENV,
+  devtool: 'source-map',
+  // mode: NODE_ENV,
+  mode: "development",
   target: 'node',
   entry: './src/index.ts',
   module: {
