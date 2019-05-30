@@ -1,0 +1,24 @@
+{
+  "name": "tinyraytracer",
+  "version": "0.0.1",
+  "description": "Tiny Raytracer implementation",
+  "main": "index.js",
+  "author": "trox667",
+  "license": "MIT",
+  "private": true,
+  "devDependencies": {
+    "@types/gl-vec3": "^1.1.0",
+    "@types/node": "^12.0.4",
+    "ts-loader": "^6.0.1",
+    "typescript": "^3.5.1",
+    "webpack": "^4.32.2",
+    "webpack-cli": "^3.3.2"
+  },
+  "scripts": {
+    "build": "webpack",
+    "start": "node dist/bundle.js"
+  },
+  "dependencies": {
+    "gl-vec3": "^1.1.3"
+  }
+}
