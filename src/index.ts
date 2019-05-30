@@ -26,6 +26,15 @@ class Material {
   }
 }
 
+class Light {
+  public position: Vec3;
+  public intensity: number;
+  constructor(position: Vec3, intensity: number) {
+    this.position = position;
+    this.intensity = intensity;
+  }
+}
+
 class Sphere {
   public center: Vec3;
   public radius: number;
@@ -82,7 +91,12 @@ const scene_intersect = (
   return { was_hit: sphere_dist < 1000, hit, n, material };
 };
 
-const cast_ray = (origin: Vec3, direction: Vec3, spheres: Sphere[]) => {
+const cast_ray = (
+  origin: Vec3,
+  direction: Vec3,
+  spheres: Sphere[],
+  lights: Light[]
+) => {
   const { was_hit, hit, n, material } = scene_intersect(
     origin,
     direction,
@@ -91,10 +105,20 @@ const cast_ray = (origin: Vec3, direction: Vec3, spheres: Sphere[]) => {
   if (!was_hit) {
     return [0.2, 0.7, 0.8];
   }
-  return material.diffuse_color;
+  let diffuse_light_intensity = 0;
+  lights.forEach(light => {
+    let light_dir: Vec3 = [];
+    let light_dir_: Vec3 = [];
+    sub(light_dir_, light.position, hit);
+    normalize(light_dir, light_dir_);
+    diffuse_light_intensity += light.intensity * Math.max(0, dot(light_dir, n));
+  });
+  let res_color: Vec3 = [];
+  scale(res_color, material.diffuse_color, diffuse_light_intensity);
+  return res_color;
 };
 
-const render = (spheres: Sphere[]) => {
+const render = (spheres: Sphere[], lights: Light[]) => {
   const width = 1024;
   const height = 768;
   const fov = Math.PI / 2;
@@ -107,7 +131,7 @@ const render = (spheres: Sphere[]) => {
       const y = -((2 * (j + 0.5)) / height - 1) * Math.tan(fov / 2);
       const dir: Vec3 = [];
       normalize(dir, [x, y, -1]);
-      framebuffer[i + j * width] = cast_ray([0, 0, 0], dir, spheres);
+      framebuffer[i + j * width] = cast_ray([0, 0, 0], dir, spheres, lights);
     }
   }
 
@@ -143,7 +167,10 @@ const main = () => {
   spheres.push(new Sphere([-1.5, -0.5, -18], 3, red_rubber));
   spheres.push(new Sphere([7, 5, -18], 4, ivory));
 
-  render(spheres);
+  const lights = [];
+  lights.push(new Light([-20, 20, 20], 1.5));
+
+  render(spheres, lights);
 };
 
 main();
