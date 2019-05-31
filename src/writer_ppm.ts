@@ -13,11 +13,14 @@ export const write_ppm = (
   const buf = new Uint8Array(width * height * 3);
   let c = 0;
   for (let i = 0; i < height * width; i++) {
-    buf[c] = val_to_char(framebuffer[i].x);
+    let cur = framebuffer[i];
+    const max = Math.max(cur.x, Math.max(cur.y, cur.z));
+    if(max > 1) cur = cur.scale(1/max);
+    buf[c] = val_to_char(cur.x);
     c++;
-    buf[c] = val_to_char(framebuffer[i].y);
+    buf[c] = val_to_char(cur.y);
     c++;
-    buf[c] = val_to_char(framebuffer[i].z);
+    buf[c] = val_to_char(cur.z);
     c++;
   }
 
