@@ -1,7 +1,6 @@
 import * as fs from "fs";
-import { add, sub, normalize, dot, scale } from "gl-vec3";
+import {Vec3} from './vec3';
 
-type Vec3 = number[];
 interface SphereIntersect {
   t: number;
   res: boolean;
@@ -20,9 +19,9 @@ interface Intersect {
 }
 
 class Material {
-  public diffuse_color: Vec3 = [];
+  public diffuse_color= new Vec3();
   constructor(diffuse_color?: Vec3) {
-    this.diffuse_color = diffuse_color ? diffuse_color : [0, 0, 0];
+    this.diffuse_color = diffuse_color ? diffuse_color : this.diffuse_color;
   }
 }
 
@@ -47,11 +46,10 @@ class Sphere {
   }
 
   ray_intersect(origin: Vec3, direction: Vec3, t0: number): SphereIntersect {
-    const L: Vec3 = [];
-    sub(L, this.center, origin);
+    const L = this.center.sub(origin);
+    const tca = L.dot(direction);
 
-    const tca = dot(L, direction);
-    const d2 = dot(L, L) - tca * tca;
+    const d2 = L.dot(L) - tca * tca;
     if (d2 > this.radius * this.radius) return { t: t0, res: false };
     const thc = Math.sqrt(this.radius * this.radius - d2);
     t0 = tca - thc;
@@ -69,8 +67,8 @@ const scene_intersect = (
   spheres: Sphere[]
 ): Intersect => {
   let sphere_dist = Number.MAX_VALUE;
-  let hit: Vec3 = [];
-  let n: Vec3 = [];
+  let hit = new Vec3();
+  let n = new Vec3();
   let material: Material;
   spheres.forEach(sphere => {
     let dist_i = 0;
@@ -78,12 +76,8 @@ const scene_intersect = (
     dist_i = t;
     if (res && dist_i < sphere_dist) {
       sphere_dist = dist_i;
-      let dir_dist_i: Vec3 = [];
-      scale(dir_dist_i, direction, dist_i);
-      add(hit, origin, dir_dist_i);
-      let n_: Vec3 = [];
-      sub(n_, hit, sphere.center);
-      normalize(n, n_);
+      hit = origin.add(direction.scale(dist_i));
+      n = hit.sub(sphere.center).normalize();
       material = sphere.material;
     }
   });
@@ -103,18 +97,15 @@ const cast_ray = (
     spheres
   );
   if (!was_hit) {
-    return [0.2, 0.7, 0.8];
+    return new Vec3(0.2, 0.7, 0.8);
   }
   let diffuse_light_intensity = 0;
   lights.forEach(light => {
-    let light_dir: Vec3 = [];
-    let light_dir_: Vec3 = [];
-    sub(light_dir_, light.position, hit);
-    normalize(light_dir, light_dir_);
-    diffuse_light_intensity += light.intensity * Math.max(0, dot(light_dir, n));
+    let light_dir = light.position.sub(hit).normalize();
+
+    diffuse_light_intensity += light.intensity * Math.max(0, light_dir.dot(n));
   });
-  let res_color: Vec3 = [];
-  scale(res_color, material.diffuse_color, diffuse_light_intensity);
+  let res_color = material.diffuse_color.scale(diffuse_light_intensity);
   return res_color;
 };
 
@@ -123,15 +114,16 @@ const render = (spheres: Sphere[], lights: Light[]) => {
   const height = 768;
   const fov = Math.PI / 2;
   const framebuffer: Array<Vec3> = new Array(width * height);
+  const origin = new Vec3();
 
   for (let j = 0; j < height; j++) {
     for (let i = 0; i < width; i++) {
       const x =
         (((2 * (i + 0.5)) / width - 1) * Math.tan(fov / 2) * width) / height;
       const y = -((2 * (j + 0.5)) / height - 1) * Math.tan(fov / 2);
-      const dir: Vec3 = [];
-      normalize(dir, [x, y, -1]);
-      framebuffer[i + j * width] = cast_ray([0, 0, 0], dir, spheres, lights);
+      const p = new Vec3(x, y, -1);
+      const dir = p.normalize();
+      framebuffer[i + j * width] = cast_ray(origin, dir, spheres, lights);
     }
   }
 
@@ -142,11 +134,11 @@ const render = (spheres: Sphere[], lights: Light[]) => {
   const buf = new Uint8Array(width * height * 3);
   let c = 0;
   for (let i = 0; i < height * width; i++) {
-    buf[c] = val_to_char(framebuffer[i][0]);
+    buf[c] = val_to_char(framebuffer[i].x);
     c++;
-    buf[c] = val_to_char(framebuffer[i][1]);
+    buf[c] = val_to_char(framebuffer[i].y);
     c++;
-    buf[c] = val_to_char(framebuffer[i][2]);
+    buf[c] = val_to_char(framebuffer[i].z);
     c++;
   }
 
@@ -158,17 +150,17 @@ const render = (spheres: Sphere[], lights: Light[]) => {
 };
 
 const main = () => {
-  const ivory = new Material([0.4, 0.4, 0.3]);
-  const red_rubber = new Material([0.3, 0.1, 0.1]);
+  const ivory = new Material(new Vec3(0.4, 0.4, 0.3));
+  const red_rubber = new Material(new Vec3(0.3, 0.1, 0.1));
 
   const spheres = [];
-  spheres.push(new Sphere([-3, 0, -16], 2, ivory));
-  spheres.push(new Sphere([-1, -1.5, -12], 2, red_rubber));
-  spheres.push(new Sphere([-1.5, -0.5, -18], 3, red_rubber));
-  spheres.push(new Sphere([7, 5, -18], 4, ivory));
+  spheres.push(new Sphere(new Vec3(-3, 0, -16), 2, ivory));
+  spheres.push(new Sphere(new Vec3(-1, -1.5, -12), 2, red_rubber));
+  spheres.push(new Sphere(new Vec3(-1.5, -0.5, -18), 3, red_rubber));
+  spheres.push(new Sphere(new Vec3(7, 5, -18), 4, ivory));
 
   const lights = [];
-  lights.push(new Light([-20, 20, 20], 1.5));
+  lights.push(new Light(new Vec3(-20, 20, 20), 1.5));
 
   render(spheres, lights);
 };
