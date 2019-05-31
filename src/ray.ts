@@ -24,15 +24,35 @@ export const cast_ray = (
   let diffuse_light_intensity = 0;
   let specular_light_intensity = 0;
   lights.forEach(light => {
-    let light_dir = light.position.sub(hit).normalize();
+    const light_dir = light.position.sub(hit).normalize();
+    const light_distance = light.position.sub(hit).length();
 
-    diffuse_light_intensity += light.intensity * Math.max(0, light_dir.dot(n));
-    
-    specular_light_intensity +=
-      Math.pow(
-        Math.max(0, reflect(light_dir.scale(-1), n).scale(-1).dot(direction)),
-        material.specular_exponent
-      ) * light.intensity;
+    const shadow_orig =
+      light_dir.mul(n).length() < 0
+        ? hit.sub(n.scale(1e-3))
+        : hit.add(n.scale(1e-3));
+    const { was_hit: shadow_was_hit, hit: shadow_pt } = scene_intersect(
+      shadow_orig,
+      light_dir,
+      spheres
+    );
+    if (
+      !shadow_was_hit ||
+      shadow_pt.sub(shadow_orig).length() >= light_distance
+    ) {
+      diffuse_light_intensity +=
+        light.intensity * Math.max(0, light_dir.dot(n));
+      specular_light_intensity +=
+        Math.pow(
+          Math.max(
+            0,
+            reflect(light_dir.scale(-1), n)
+              .scale(-1)
+              .dot(direction)
+          ),
+          material.specular_exponent
+        ) * light.intensity;
+    }
   });
   const vec_1 = new Vec3(1, 1, 1);
   let res_color = material.diffuse_color
